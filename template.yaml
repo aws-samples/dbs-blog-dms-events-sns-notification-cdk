@@ -1,0 +1,138 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  DMSEventsNotifications
+  
+  SAM Template for DMSEventsNotifications
+
+Parameters:
+  pLambdaExecutionRole:
+    Description: IAM Role Name for AWS Lambda function.
+    Type: String
+    Default: DMSLambdaRole
+  pLambdaManagedPolicy:
+    Description: IAM Policy for AWS Lambda function that can publish SNS messages and create Log events.
+    Type: String
+    Default: DMSLambdaLogReaderPolicy
+  pSNSTopicName:
+    Description: SNS Topic Name for Lambda to publish messages.
+    Type: String
+  pLambdaFunctionName:
+    Description: Set Name for AWS Lambda Function.
+    Type: String
+    Default: DMSLogReaderLambda
+  pLambdaVPCSecurityGroup:
+    Description: Set VPC Security Group for the AWS Lambda Function.
+    Type: String
+  pLambdaSubnetId1:
+    Description: Set VPC Subnet for the AWS Lambda Function.
+    Type: String
+  pDMSLogGroupName:
+    Description: Name of DMS CloudWatch Log Group for the Lambda function to be triggered.
+    Type: String
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 30
+
+Resources:
+  DMSLogReaderLambda:
+    # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: dms_events_notification/
+      Handler: app.lambda_handler
+      Runtime: python3.9
+      ReservedConcurrentExecutions: 1
+      Architectures:
+        - x86_64
+      VpcConfig:
+        SecurityGroupIds:
+          - !Ref pLambdaVPCSecurityGroup
+        SubnetIds:
+          - !Ref pLambdaSubnetId1
+      Environment:
+        Variables:
+          snsARN: !Join
+              - ':'
+              - - 'arn'
+                - 'aws'
+                - 'sns'
+                - !Ref AWS::Region
+                - !Ref AWS::AccountId
+                - !Ref pSNSTopicName
+      Role: !GetAtt DMSLogReaderRole.Arn
+      Events:
+        DMSLogsTrigger:
+          # More info about CloudWatch Logs Event Source: https://github.com/aws/serverless-application-model/blob/master/versions/2016-10-31.md#cloudwatchlogs
+          Type: CloudWatchLogs
+          Properties:
+            LogGroupName: !Ref pDMSLogGroupName
+            FilterPattern: suspended
+  DMSLogReaderRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Description: Assume IAM Role for Lambda function
+      RoleName: !Ref pLambdaExecutionRole
+  DMSLogReaderPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Properties:
+      Description: Managed Policy for Lambda Function
+      ManagedPolicyName: !Ref pLambdaManagedPolicy
+      Roles:
+        - !Ref pLambdaExecutionRole
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogGroup'
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource: !Join
+              - ''
+              - - 'arn:aws:logs:'
+                - !Ref AWS::Region
+                - ':'
+                - !Ref AWS::AccountId
+                - ':log-group:/aws/lambda/'
+                - !Ref pLambdaFunctionName
+                - ':*'
+          - Effect: Allow
+            Action:
+              - 'sns:Publish'
+            Resource: !Join
+              - ':'
+              - - 'arn'
+                - 'aws'
+                - 'sns'
+                - !Ref AWS::Region
+                - !Ref AWS::AccountId
+                - !Ref pSNSTopicName
+          - Effect: Allow
+            Action:
+              - 'ec2:CreateNetworkInterface'
+              - 'ec2:DescribeNetworkInterfaces'
+              - 'ec2:DeleteNetworkInterface'
+            Resource: '*'
+
+Outputs:
+  # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+  # Find out more about other implicit resources you can reference within SAM
+  # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+  DMSLogReaderFunction:
+    Description: "AWS Lambda Function ARN"
+    Value: !GetAtt DMSLogReaderLambda.Arn
+  DMSLogReaderIAMRole:
+    Description: "AWS IAM Role attached to the AWS Lambda function"
+    Value: !GetAtt DMSLogReaderRole.Arn
