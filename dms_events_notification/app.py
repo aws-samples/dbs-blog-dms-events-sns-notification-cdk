@@ -92,8 +92,8 @@ def lambda_handler(event, context):
     Parameters
     ----------
     event: dict, required
-        API Gateway Lambda Proxy Input Format
-        Event doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html#api-gateway-simple-proxy-for-lambda-input-format
+        AWS CloudWatch Log message format
+        Event doc: https://docs.aws.amazon.com/lambda/latest/dg/services-cloudwatchlogs.html
 
     context: object, required
         Lambda Context runtime methods and attributes
@@ -101,9 +101,7 @@ def lambda_handler(event, context):
 
     Returns
     ------
-    API Gateway Lambda Proxy Output Format: dict
-
-        Return doc: https://docs.aws.amazon.com/apigateway/latest/developerguide/set-up-lambda-proxy-integrations.html
+    Lambda function output : JSON/Error
     """
 
     try:
