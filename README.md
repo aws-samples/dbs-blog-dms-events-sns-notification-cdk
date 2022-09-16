@@ -132,8 +132,8 @@ Next, you can use AWS Serverless Application Repository to deploy ready to use A
 
 ## Security
 
-See [CONTRIBUTING](CONTRIBUTING#security-issue-notifications) for more information.
+See [CONTRIBUTING](CONTRIBUTING.md#security-issue-notifications) for more information.
 
 ## License
 
-This library is licensed under the MIT-0 License. See the [LICENSE](LICENSE) file.
+This library is licensed under the MIT-0 License. See the [LICENSE](LICENSE.md) file.
