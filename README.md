@@ -24,6 +24,13 @@ The AWS Toolkit is an open source plug-in for popular IDEs that uses the SAM CLI
 * [VS Code](https://docs.aws.amazon.com/toolkit-for-vscode/latest/userguide/welcome.html)
 * [Visual Studio](https://docs.aws.amazon.com/toolkit-for-visual-studio/latest/user-guide/welcome.html)
 
+## Behind the logic in AWS Lambda function
+
+The Lambda function acts as a mechanism to read the CloudWatch Logs that are sent by DMS Task and send SNS notifications to the subscribed SNS Topics. Here, we can walk-through the code logic running inside the Lambda function that is written in Python 3.9 runtime:
+The CloudWatch Log trigger sends a message event to the Lambda function whenever a filter pattern, the one set in template.yaml parameter FilterPattern, is matched in the DMS error logs. This event is sent as a Base64-encoded .gzip file archive. To read the message data, it is first decoded and decompressed which reveals a JSON document containing the DMS task event details.
+The JSON document is de-serialized to identify the DMS task, Replication Instance and the DMS task error message. These details help us form an email message body in order to notify user(s) on a specific DMS task with error. We then use this information to form a text that is published to a SNS Topic ARN using Python Boto3 SDK. The Lambda function identifies the SNS Topic ARN based on the environment variable snsARN set on the Lambda function. This environment variable is set automatically during the SAM deploy execution as it asks the user to specify the value for parameter pSNSTopicName they wish to publish the error messages.
+In case an error arises during the Lambda execution, the Lambda error events are published to CloudWatch for troubleshooting. You can then review and debug the code as required. The Lambda function execution completes once the email message is sent successfully. The subscribed email addresses will then receive a message with the formulated text body from this function.
+
 ## Deploy the sample application
 
 The Serverless Application Model Command Line Interface (SAM CLI) is an extension of the AWS CLI that adds functionality for building and testing Lambda applications. It uses Docker to run your functions in an Amazon Linux environment that matches Lambda. It can also emulate your application's build environment.
